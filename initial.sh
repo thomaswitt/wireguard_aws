@@ -6,6 +6,4 @@ echo "# Installing Wireguard"
 
 ./install.sh
 
-./add-client.sh
-
-echo "# Wireguard installed"
+echo "# Wireguard installed. Now add a client."
