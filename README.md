@@ -7,7 +7,7 @@ Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2
 ### Preparation in the AWS console
 - Choose desired region and create Elastic IP
 - Import SSH keypair
-- Create security group wireguard and allow incoming tcp 22 and udp 443
+- Create security group wireguard and allow incoming tcp 22 (or eg 443 if you're changing the default ssh port) and udp 443. Potentially also Custom ICMP Echo Requets.
 - Launch t3a.micro Amazon Linux 2 AMI (5.10, SSD, x86)
   - Start with all defaults, but
   - Assign Security Group
@@ -15,6 +15,7 @@ Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2
   - Choose your existing imported keypair at launch
 - Go to Elastic IPs and associate your Elastic IP to the new instance
 - ssh into new instance (ssh ec2-user@AWS-IP)
+- Harden sshd_config and consider changing default ssh port
 
 ### Installation
 ```
@@ -45,6 +46,18 @@ sudo ~ec2-user/wireguard_aws/reset.sh
 ```
 sudo ~ec2-user/wireguard_aws/remove.sh
 ```
+
+### Autoupdates
+```
+sudo yum install yum-cron
+service yum-cron start
+systemctl enable yum-cron
+```
+
+If you don't want to upgrade all packages, set in `/etc/yum/yum-cron.conf` the update_cmd from default to security.
+
+Progress can be monitored in `/var/log/yum.log`.
+
 ## Authors
-- Alexey Chernyavskiy (Original version)
 - Thomas Witt (Adapted to AWS Linux)
+- Alexey Chernyavskiy (Original version)
