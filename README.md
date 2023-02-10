@@ -58,6 +58,20 @@ If you don't want to upgrade all packages, set in `/etc/yum/yum-cron.conf` the u
 
 Progress can be monitored in `/var/log/yum.log`.
 
+### Mosh
+```
+sudo yum -y remove mosh
+sudo yum -y groupinstall 'Development Tools'
+sudo yum -y install protobuf-devel protobuf-compiler ncurses-devel openssl-devel
+git clone https://github.com/mobile-shell/mosh
+cd mosh
+./autogen.sh
+./configure --enable-asan
+make
+make check
+sudo make install
+```
+
 ## Authors
 - Thomas Witt (Adapted to AWS Linux)
 - Alexey Chernyavskiy (Original version)
