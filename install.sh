@@ -10,6 +10,7 @@ yum install -y yum-cron
 sed -i 's/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf
 systemctl start yum-cron.service
 systemctl enable yum-cron.service
+# Progress can be monitored in `/var/log/yum.log`.
 
 echo "Installing packages"
 curl -Lo /etc/yum.repos.d/wireguard.repo \
