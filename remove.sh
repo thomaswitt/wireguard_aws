@@ -1,10 +1,16 @@
+#!/bin/bash
+
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run via sudo as root"; exit 1
+fi
+
 echo "# Removing"
 
 wg-quick down wg0
 systemctl stop wg-quick@wg0
 systemctl disable wg-quick@wg0
 
-yum uninstall -y wireguard-dkms wireguard-tools iptables-services qrencode
+yum remove -y wireguard-tools iptables-services qrencode
 yum update -y
 yum clean all -y
 

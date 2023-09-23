@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run via sudo as root"; exit 1
+fi
+
 read -e -p "Enter VPN user name (eg joe@iPad): " -i "$1" USERNAME
 if [ -z $USERNAME ]; then echo "[#]Empty VPN user name. Exit"; exit 1; fi
 

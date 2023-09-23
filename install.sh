@@ -1,22 +1,17 @@
 #!/bin/bash
 
-
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root"; exit 1
+  echo "Please run via sudo as root"; exit 1
 fi
 
-echo "Installing yum-cron"
-yum install -y yum-cron
-sed -i 's/apply_updates = no/apply_updates = yes/' /etc/yum/yum-cron.conf
-systemctl start yum-cron.service
-systemctl enable yum-cron.service
-# Progress can be monitored in `/var/log/yum.log`.
+echo "Installing utils"
+yum install -y yum-utils dnf-automatic
+sed -i 's/apply_updates = no/apply_updates = yes/' /etc/dnf/automatic.conf
+sed -i 's/emit_via = stdio/emit_via = motd/' /etc/dnf/automatic.conf
+systemctl enable --now dnf-automatic.timer
 
-echo "Installing packages"
-curl -Lo /etc/yum.repos.d/wireguard.repo \
-  https://copr.fedorainfracloud.org/coprs/jdoss/wireguard/repo/epel-7/jdoss-wireguard-epel-7.repo
-amazon-linux-extras install -y epel
-yum install -y epel-release wireguard-dkms wireguard-tools iptables-services qrencode
+echo "Installing wireguard packages"
+yum install -y wireguard-tools iptables-services qrencode
 yum update -y
 yum clean all -y
 
@@ -25,25 +20,26 @@ sysctl net.ipv4.ip_forward=1 | tee -a /etc/sysctl.d/wg-forwarding.conf
 sysctl net.ipv4.conf.all.forwarding=1 | tee -a /etc/sysctl.d/wg-forwarding.conf
 systemctl enable wg-quick@wg0.service
 
-mkdir /etc/wireguard/
-
 cd /etc/wireguard
 
 umask 077
 
 SERVER_PRIVKEY=$(wg genkey)
 SERVER_PUBKEY=$(echo $SERVER_PRIVKEY | wg pubkey)
-
 echo $SERVER_PUBKEY >./server_public.key
 echo $SERVER_PRIVKEY >./server_private.key
 
-EXT_IP=`curl -s http://169.254.169.254/latest/meta-data/public-ipv4`
+TOKEN=$(curl -s --request PUT "http://169.254.169.254/latest/api/token" --header "X-aws-ec2-metadata-token-ttl-seconds: 3600")
+
+EXT_IP=`curl -s http://169.254.169.254/latest/meta-data/public-ipv4 --header "X-aws-ec2-metadata-token: $TOKEN"`
 read -e -p "Enter the endpoint (external ip and port) in format [ipv4:port]: " -i "${EXT_IP}:443" ENDPOINT
 if [ -z $ENDPOINT ]; then echo "[#]Empty ENDPOINT. Exit"; exit 1; fi
 echo $ENDPOINT > ./endpoint.var
 
-ifconfig eth0
-INT_IP=`curl -s curl http://169.254.169.254/latest/meta-data/local-ipv4`
+INTERFACE=`networkctl list --no-legend --no-pager|grep ether|cut -d ' ' -f 4`
+
+ifconfig $INTERFACE || exit "Networking interface $INTERFACE does not exist"
+INT_IP=`curl -s http://169.254.169.254/latest/meta-data/local-ipv4 --header "X-aws-ec2-metadata-token: $TOKEN"`
   read -e -p "Enter the server address in the VPN subnet (CIDR format), [ENTER] set to default: " -i $INT_IP SERVER_IP
 if [ -z $SERVER_IP ]; then echo "[#]Empty SERVER IP. Exit"; exit 1; fi
 echo $SERVER_IP | grep -o -E '([0-9]+\.){3}' > ./vpn_subnet.var
@@ -54,7 +50,7 @@ echo $DNS > ./dns.var
 
 echo 1 > ./last_used_ip.var
 
-read -e -p "Enter the name of the WAN network interface ([ENTER] set to default: " -i "eth0" WAN_INTERFACE_NAME
+read -e -p "Enter the name of the WAN network interface ([ENTER] set to default: " -i "$INTERFACE" WAN_INTERFACE_NAME
 if [ -z $WAN_INTERFACE_NAME ]; then echo "[#]Empty WAN. Exit"; exit 1; fi
 echo $WAN_INTERFACE_NAME > ./wan_interface_name.var
 
@@ -75,5 +71,5 @@ cp -f ./wg0.conf.def ./wg0.conf
 
 systemctl enable wg-quick@wg0
 
-echo "Rebooting"
+echo "=== REBOOTING"
 reboot

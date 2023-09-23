@@ -1,3 +1,9 @@
+#!/bin/bash
+
+if [ "$EUID" -ne 0 ]; then
+  echo "Please run via sudo as root"; exit 1
+fi
+
 echo "# Reseting..."
 
 cd /etc/wireguard

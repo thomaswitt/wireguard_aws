@@ -1,6 +1,7 @@
 # Install and use AWS-based Wireguard
 
-Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2
+Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2023.
+Choose a t4g.micro 64-bit (Arm) instance with Amazon Linux 2023 AMI.
 
 ## Preparation in the AWS console
 - Choose desired region and create Elastic IP
@@ -10,10 +11,11 @@ Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2
   - Allow UDP 443 for WireGuard.
   - Allow UDP 60000-61000 for mosh
   - Allow Custom ICMP Echo Request
-- Launch t3a.micro Amazon Linux 2 AMI (5.10, SSD, x86)
+- Launch t4g.micro Amazon Linux 2 AMI (aarch64)
   - Start with all defaults, but
   - Assign Security Group
-  - Change Storage to Encrypted
+  - Enable Instance auto-recovery
+  - Change Storage to Encrypted with default key (Advanced EBS option)
   - Choose your existing imported keypair at launch
 - Go to Elastic IPs and associate your Elastic IP to the new instance
   - Potentially set a route53 hostname
@@ -22,9 +24,8 @@ Scripts to automate install and use of Wireguard on AWS with Amazon Linux 2
 
 ## Installation
 ```
-sudo yum install git -y
-
-sudo yum install tmux -y
+sudo yum upgrade
+sudo yum install git tmux -y
 
 git clone https://github.com/thomaswitt/dotfiles.git
 sudo cp dotfiles/etc/bashrc.local /etc/profile.d/bashrc.local.sh
@@ -32,8 +33,12 @@ sudo cp dotfiles/etc/issue.net /etc
 sudo cp /etc/ssh/ssh_config /etc/ssh/ssh_config.orig
 sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
 sudo cp dotfiles/etc/issue.net /etc
-sudo cp dotfiles/etc/ssh/* /etc/ssh # consider changing default port
-sudo sshd -T && sudo service sshd restart
+sudo cp dotfiles/etc/ssh/* /etc/ssh
+# consider changing default port to 443 or something else
+# sudo sed -i 's/^# Port 443/Port 443/' /etc/ssh/sshd_config
+sudo sed -i 's/^# AllowUsers ec2-user/AllowUsers ec2-user/' /etc/ssh/sshd_config
+sudo sh -c 'grep Subsystem /etc/ssh/sshd_config.orig >>/etc/ssh/sshd_config'
+sudo sshd -T && sudo service sshd restart # Re-Login now if you changed the port
 
 git clone https://github.com/thomaswitt/wireguard_aws.git wireguard_aws &&
 cd wireguard_aws && sudo ./initial.sh # accept defaults
@@ -55,7 +60,7 @@ sudo ~ec2-user/wireguard_aws/add-client.sh
 sudo ~ec2-user/wireguard_aws/add-client.sh johnDoe@iPadPro
 ```
 
-### Reset customers
+### Reset all clients
 `reset.sh` - script that removes information about clients. And stopping the VPN server Winguard
 ```
 sudo ~ec2-user/wireguard_aws/reset.sh
@@ -66,7 +71,7 @@ sudo ~ec2-user/wireguard_aws/reset.sh
 sudo ~ec2-user/wireguard_aws/remove.sh
 ```
 
-## Mosh
+## Optional: Install Mosh
 ```
 sudo yum -y remove mosh
 sudo yum -y groupinstall 'Development Tools'
