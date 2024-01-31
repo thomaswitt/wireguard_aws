@@ -1,0 +1,1 @@
+ec2-metadata --all|egrep '^(.*hostname|.*ipv4|instance-type|placement): '
