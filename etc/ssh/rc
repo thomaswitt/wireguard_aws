@@ -1,1 +1,2 @@
-ec2-metadata --all|egrep '^(.*hostname|.*ipv4|instance-type|placement): '
+# ec2-metadata --all|egrep '^(.*hostname|.*ipv4|instance-type|placement): '
+ec2-metadata --all | egrep '^(.*hostname|.*ipv4|instance-type|placement): ' | sed 's/^/\033[1m/;s/$/\033[0m/'

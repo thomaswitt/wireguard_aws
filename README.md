@@ -132,6 +132,21 @@ make check
 sudo make install
 ```
 
+## Optional: Update sshd
+```bash
+sudo yum install -y gcc openssl-devel zlib-devel mlocate autoconf systemd-devel pam-devel
+curl -O https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p1.tar.gz
+tar xvfz openssh-*.tar.gz
+cd $(basename openssh-*.tar.gz .tar.gz)
+./configure --prefix=/usr --sysconfdir=/etc/ssh --with-pam --with-default-path=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin && make
+sudo make install
+/usr/sbin/sshd -t -f /etc/ssh/sshd_config
+mkdir /etc/ssh/sshd_config.d /etc/ssh/ssh_config.d
+echo "Include /etc/ssh/sshd_config.d/*.conf" | sudo tee -a /etc/ssh/sshd_config
+echo "Include /etc/ssh/ssh_config.d/*.conf" | sudo tee -a /etc/ssh/ssh_config
+systemctl restart sshd.service
+```
+
 # Authors
 - Thomas Witt (Adapted to AWS Linux)
 - Alexey Chernyavskiy (Original version)
